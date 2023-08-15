@@ -1,0 +1,45 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+      - master  # Replace with your branch name
+
+pool:
+  vmImage: 'ubuntu-latest'  # Choose an appropriate agent image
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.x'  # You can use the appropriate Python version
+
+  - script: 'echo $(Agent.ToolsDirectory)'
+    displayName: 'Show Agent.ToolsDirectory'
+
+  - script: |
+      echo '##vso[task.prependpath]$(Agent.ToolsDirectory)/terraform/1.0.2'
+    displayName: 'Add Terraform to PATH'
+
+  - script: 'terraform --version'
+    displayName: 'Terraform Version'
+
+  - script: |
+      cd quickstart/101-resource-group
+      terraform init
+      terraform plan -out=tfplan
+    displayName: 'Terraform Init and Plan'
+
+  - script: |
+      cd quickstart/101-resource-group
+      terraform apply -auto-approve tfplan
+    displayName: 'Terraform Apply'
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
+
+  - script: |
+      cd quickstart/101-resource-group
+      terraform destroy -auto-approve
+    displayName: 'Terraform Destroy'
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
